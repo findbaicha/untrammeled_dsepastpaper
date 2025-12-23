@@ -63,6 +63,18 @@
         .table-container::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
+        
+        /* 邀请码输入样式 */
+        .invite-code-input {
+            letter-spacing: 0.2em;
+            font-weight: bold;
+            font-family: monospace;
+        }
+        
+        .invite-code-required {
+            border-left: 4px solid #f59e0b;
+            background-color: #fffbeb;
+        }
     </style>
 </head>
 <body class="bg-[#f8fafc] min-h-screen pb-20">
@@ -136,7 +148,6 @@
                             class="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-sm hover:shadow-md">
                         立即登錄
                     </button>
-
                 </div>
             </div>
         </div>
@@ -279,13 +290,7 @@
                     </div>
                     
                     <!-- 默认管理员账号提示 -->
-                    <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <p class="text-blue-700 text-xs">
-                            <strong>預設管理員帳號：</strong><br>
-                            用戶名: <code>***</code><br>
-                            密碼: <code>***</code>
-                        </p>
-                    </div>
+                    
                 </div>
             </div>
         </div>
@@ -296,7 +301,7 @@
                 <div class="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
                     <div>
                         <h3 class="text-xl font-bold text-slate-800">註冊新帳戶</h3>
-                        <p class="text-slate-500 text-sm mt-1">創建您的個人帳戶</p>
+                        <p class="text-slate-500 text-sm mt-1">必須使用邀請碼才能註冊</p>
                     </div>
                     <button @click="closeAuthModal" class="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center transition-colors">
                         <i class="fas fa-times text-slate-400"></i>
@@ -304,6 +309,29 @@
                 </div>
 
                 <div class="p-6 space-y-6">
+                    <!-- 邀请码说明 -->
+                    <div class="invite-code-required p-4 rounded-lg">
+                        <div class="flex items-start">
+                            <i class="fas fa-key text-yellow-500 mt-1 mr-3"></i>
+                            <div>
+                                <h4 class="font-bold text-yellow-700 mb-1">必須使用邀請碼</h4>
+                                <p class="text-yellow-600 text-sm">本系統採用邀請制註冊。請向管理員索取有效的邀請碼。</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 mb-2">
+                            邀請碼 <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" v-model="registerForm.inviteCode" 
+                               placeholder="輸入8位邀請碼（例如：A1B2C3D4）"
+                               class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all invite-code-input"
+                               maxlength="8"
+                               style="letter-spacing: 0.2em;">
+                        <p class="text-slate-400 text-xs mt-1">邀請碼通常為8位大寫字母和數字的組合</p>
+                    </div>
+
                     <div>
                         <label class="block text-sm font-semibold text-slate-700 mb-2">
                             用戶名 <span class="text-red-500">*</span>
@@ -329,16 +357,6 @@
                         <input type="password" v-model="registerForm.confirmPassword" 
                                placeholder="再次輸入密碼"
                                class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-700 mb-2">
-                            邀請碼（如需管理員權限）
-                        </label>
-                        <input type="text" v-model="registerForm.inviteCode" 
-                               placeholder="輸入管理員邀請碼（可選）"
-                               class="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
-                        <p class="text-slate-400 text-xs mt-1">僅管理員可創建新管理員帳戶</p>
                     </div>
 
                     <div class="pt-2">
@@ -1062,11 +1080,12 @@
                 }
             },
             computed: {
-                // 注册表单验证
+                // 注册表单验证 - 现在必须要有邀请码
                 canRegister() {
                     return this.registerForm.username.length >= 3 &&
                            this.registerForm.password.length >= 6 &&
-                           this.registerForm.password === this.registerForm.confirmPassword;
+                           this.registerForm.password === this.registerForm.confirmPassword &&
+                           this.registerForm.inviteCode.length >= 8; // 邀请码必须至少8位
                 },
                 
                 // 反馈表单验证
@@ -1222,7 +1241,7 @@
                 
                 async register() {
                     if (!this.canRegister) {
-                        this.showError('請填寫完整的註冊信息');
+                        this.showError('請填寫完整的註冊信息，包括有效的邀請碼');
                         return;
                     }
                     
@@ -1235,40 +1254,45 @@
                         return;
                     }
                     
-                    // 如果有邀请码，检查邀请码
-                    let role = 'user';
-                    if (this.registerForm.inviteCode) {
-                        const inviteCodes = this.getInviteCodesFromStorage();
-                        const validCode = inviteCodes.find(code => 
-                            code.code === this.registerForm.inviteCode && 
-                            (!code.maxUses || code.usedCount < code.maxUses)
-                        );
-                        
-                        if (validCode) {
-                            role = validCode.role;
-                            // 更新邀请码使用次数
-                            validCode.usedCount = (validCode.usedCount || 0) + 1;
-                            this.saveInviteCodesToStorage(inviteCodes);
-                        } else {
-                            this.showError('邀請碼無效或已達到最大使用次數');
-                            return;
-                        }
+                    // 验证邀请码（现在是必须的）
+                    const inviteCodes = this.getInviteCodesFromStorage();
+                    const validCode = inviteCodes.find(code => 
+                        code.code === this.registerForm.inviteCode && 
+                        (!code.maxUses || (code.usedCount || 0) < code.maxUses)
+                    );
+                    
+                    if (!validCode) {
+                        this.showError('邀請碼無效或已過期');
+                        return;
                     }
                     
-                    // 创建新用户
+                    // 检查邀请码是否已达到最大使用次数
+                    if (validCode.maxUses && (validCode.usedCount || 0) >= validCode.maxUses) {
+                        this.showError('邀請碼已達到最大使用次數');
+                        return;
+                    }
+                    
+                    // 创建新用户，角色由邀请码决定
                     const newUser = {
                         username: this.registerForm.username,
                         password: this.registerForm.password,
-                        role: role,
+                        role: validCode.role || 'user',
                         createdAt: new Date(),
-                        lastLogin: new Date()
+                        lastLogin: new Date(),
+                        registeredWith: validCode.code // 记录使用的邀请码
                     };
                     
                     users.push(newUser);
                     this.saveUsersToStorage(users);
                     
+                    // 更新邀请码使用次数
+                    validCode.usedCount = (validCode.usedCount || 0) + 1;
+                    validCode.lastUsed = new Date();
+                    validCode.lastUsedBy = newUser.username;
+                    this.saveInviteCodesToStorage(inviteCodes);
+                    
                     this.currentUser = newUser;
-                    this.showSuccess('註冊成功', `歡迎 ${newUser.username}！您已成功註冊。`);
+                    this.showSuccess('註冊成功', `歡迎 ${newUser.username}！您已成功使用邀請碼註冊。`);
                     this.closeAuthModal();
                     this.loadUsersFromStorage();
                 },
@@ -1363,7 +1387,23 @@
                 
                 // ============ 邀请码管理方法 ============
                 loadInviteCodesFromStorage() {
-                    this.inviteCodes = this.getInviteCodesFromStorage();
+                    const codes = this.getInviteCodesFromStorage();
+                    
+                    // 如果没有邀请码，创建一个默认的普通用户邀请码
+                    if (codes.length === 0 && this.currentUser?.role === 'admin') {
+                        const defaultCode = {
+                            code: 'WELCOME01',
+                            role: 'user',
+                            maxUses: 100,
+                            usedCount: 0,
+                            createdAt: new Date(),
+                            description: '默认欢迎邀请码'
+                        };
+                        codes.push(defaultCode);
+                        this.saveInviteCodesToStorage(codes);
+                    }
+                    
+                    this.inviteCodes = codes;
                 },
                 
                 generateInviteCode() {
@@ -1383,14 +1423,15 @@
                         role: this.newInviteCode.role,
                         maxUses: this.newInviteCode.maxUses ? parseInt(this.newInviteCode.maxUses) : null,
                         usedCount: 0,
-                        createdAt: new Date()
+                        createdAt: new Date(),
+                        description: `創建於 ${new Date().toLocaleDateString()}`
                     };
                     
                     const codes = this.getInviteCodesFromStorage();
                     codes.push(code);
                     this.saveInviteCodesToStorage(codes);
                     
-                    this.showSuccess('邀請碼創建成功', `邀請碼：${code.code}`);
+                    this.showSuccess('邀請碼創建成功', `邀請碼：${code.code}（${code.role === 'admin' ? '管理員' : '普通用戶'}）`);
                     this.loadInviteCodesFromStorage();
                     this.newInviteCode = { role: 'user', maxUses: '' };
                 },
@@ -1643,6 +1684,7 @@
                 console.log('DSE Resource Hub 已載入');
                 console.log('GitHub 倉庫：', GITHUB_CONFIG.repo);
                 console.log('預設管理員帳號：', DEFAULT_ADMIN.username);
+                console.log('註冊系統：必須使用邀請碼');
             }
         }).mount('#app')
     </script>
