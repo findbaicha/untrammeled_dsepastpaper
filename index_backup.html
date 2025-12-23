@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HKDSE Past Paper 資源庫</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .card-hover:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.06); }
+        .breadcrumb-item:after { content: '>'; margin: 0 10px; color: #94a3b8; font-size: 0.8rem; }
+        .breadcrumb-item:last-child:after { content: ''; }
+        
+        /* 新增：PDF 预览模态框背景 */
+        .pdf-modal { background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(4px); }
+    </style>
+</head>
+<body class="bg-[#f8fafc] min-h-screen pb-20">
+    <div id="app" class="max-w-5xl mx-auto px-4 py-8">
+        <header class="flex justify-between items-center mb-10 bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+            <div>
+                <h1 class="text-3xl font-black text-slate-800 tracking-tight">DSE Resource Hub</h1>
+                <p class="text-slate-400 text-sm mt-1 font-medium">Untrammeled's Past Paper Library</p>
+            </div>
+            <div class="hidden md:block text-right">
+                <span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Public Archive</span>
+            </div>
+        </header>
+
+        <nav class="flex items-center mb-6 px-2 overflow-x-auto whitespace-nowrap pb-2">
+            <button @click="goHome" class="flex items-center text-blue-600 hover:text-blue-800 transition">
+                <i class="fas fa-home mr-2"></i>
+                <span class="font-bold">Home</span>
+            </button>
+            <div v-for="(crumb, index) in breadcrumbs" :key="index" class="breadcrumb-item flex items-center">
+                <button @click="jumpTo(index)" class="text-slate-500 hover:text-blue-600 font-medium transition">{{ crumb }}</button>
+            </div>
+        </nav>
+
+        <div v-if="Object.keys(currentMenu).length > (currentMenu._files ? 1 : 0)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div v-for="(value, key) in currentMenu" v-show="key !== '_files'" 
+                 @click="enterDir(key)"
+                 class="card-hover cursor-pointer bg-white p-6 rounded-2xl border border-slate-100 flex items-center justify-between transition-all group">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-blue-500 rounded-xl flex items-center justify-center transition-colors">
+                        <i class="fas fa-folder text-xl"></i>
+                    </div>
+                    <div>
+                        <span class="font-bold text-slate-700 text-lg block leading-tight">{{ key }}</span>
+                        <span class="text-slate-400 text-xs mt-1">Click to view items</span>
+                    </div>
+                </div>
+                <i class="fas fa-arrow-right text-slate-200 group-hover:text-blue-300 transition-colors"></i>
+            </div>
+        </div>
+
+        <div v-if="currentMenu._files" class="mt-8">
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                    <span class="font-bold text-slate-500 uppercase text-xs tracking-widest">Available PDF Documents</span>
+                    <span class="text-slate-400 text-xs">{{ currentMenu._files.length }} Files</span>
+                </div>
+                <div class="divide-y divide-slate-50">
+                    <div v-for="file in currentMenu._files" @click="viewPdf(file)"
+                       class="flex items-center justify-between p-5 hover:bg-blue-50/50 group transition-all cursor-pointer">
+                        <div class="flex items-center pr-4">
+                            <div class="w-10 h-10 flex items-center justify-center text-red-500 bg-red-50 rounded-lg mr-4 group-hover:scale-110 transition-transform">
+                                <i class="fas fa-file-pdf text-lg"></i>
+                            </div>
+                            <div>
+                                <span class="text-slate-700 group-hover:text-blue-700 font-semibold block transition-colors">
+                                    {{ formatFileName(file) }}
+                                </span>
+                                <span class="text-slate-400 text-xs">PDF Document</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center text-blue-500 font-bold text-xs bg-white px-4 py-2 rounded-full border border-slate-100 shadow-sm group-hover:bg-blue-600 group-hover:text-white transition-all">
+                            VIEW <i class="fas fa-eye ml-2"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div v-if="Object.keys(currentMenu).length === 0" class="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
+            <i class="fas fa-inbox text-slate-200 text-5xl mb-4"></i>
+            <p class="text-slate-400">This folder is empty.</p>
+        </div>
+
+        <div v-if="pdfUrl" class="pdf-modal fixed inset-0 z-[100] flex flex-col">
+            <div class="flex items-center justify-between p-4 text-white">
+                <div class="flex items-center space-x-3">
+                    <i class="fas fa-file-pdf text-red-500 text-xl"></i>
+                    <span class="font-bold tracking-tight">{{ viewingFileName }}</span>
+                </div>
+                <button @click="closePdf" class="w-10 h-10 rounded-full bg-white/10 hover:bg-red-500 transition-colors flex items-center justify-center text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="flex-grow bg-white m-2 md:m-4 rounded-xl overflow-hidden shadow-2xl">
+                <iframe :src="pdfUrl" class="w-full h-full border-none"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+        const rawData = {
+            "hkedb file": {
+                "_files": ["六国论.pdf","出师表.pdf","劝学.pdf","始得西山宴游记.pdf","岳阳楼记.pdf","师说.pdf","廉颇蔺相如列传.pdf","论仁论孝论君子.pdf","逍遥游.pdf","鱼我所欲也.pdf", "SET_TEXT_12.pdf"] ,
+
+            },
+            "Chinese": {
+                "2012": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf", "p3.pdf", "p4.pdf", "p5.pdf", "per.pdf"] },
+                "2013": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf", "p4.pdf", "p5.pdf"] },
+                "2014": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf", "p4.pdf", "p5.pdf", "per.pdf"] },
+                "2015": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf", "p4.pdf", "p5.pdf"] },
+                "2016": { "_files": ["ans.pdf", "p1.pdf", "p1.1.pdf", "p2.pdf", "p4.pdf", "p5.pdf", "per.pdf"] },
+                "2017": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf", "p3.pdf", "p4.pdf", "p5.pdf"] },
+                "2018": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf", "p3.pdf", "p4.pdf"] },
+                "2019": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf", "p3.pdf", "p4.pdf"] },
+                "2020": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf", "p3.pdf"] },
+                "2021": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf", "p3.pdf"] },
+                "2022": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf", "p3.pdf", "per.pdf"] },
+                "2023": { "_files": ["ans.pdf", "p1.pdf","p2.pdf", "p3.pdf", "per.pdf"] },
+                "2024": { "_files": ["p1.pdf"] },
+                "PP": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf", "p3.pdf", "p4.pdf", "p5.pdf"] },
+                "SP": { "_files": ["ans.pdf", "p1 (1).pdf", "p2.pdf", "p3.pdf", "p4.pdf", "p5.pdf"] }
+            },
+            "English": {
+                "DSE": {
+                    "2012": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf", "p3.pdf", "p4.pdf", "per.pdf"] },
+                    "2013": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf", "p3.pdf", "p4.pdf"] },
+                    "2014": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf", "p3.pdf", "p4.pdf"] },
+                    "2015": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf", "p3.pdf", "p4.pdf"] },
+                    "2016": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf", "p3.pdf", "p4.pdf"] },
+                    "2017": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf", "p3.pdf", "p4.pdf"] },
+                    "2018": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf", "p3.pdf", "p4.pdf"] },
+                    "2019": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf", "p3.pdf", "p4.pdf"] },
+                    "2020": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf", "p3.pdf"] },
+                    "2021": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf", "p3.pdf"] },
+                    "2022": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf", "p3.pdf"] },
+                    "2023": { "_files": ["ans.pdf", "p1 (1).pdf", "p2.pdf", "p3.pdf", "p4.pdf", "per.pdf"] },
+                    "PP": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf", "p3.pdf", "p4.pdf"] }
+                }
+            },
+            "Math": {
+                "DSE": {
+                    "中文版": {
+                        "2012": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] },
+                        "2013": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] },
+                        "2014": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] },
+                        "2015": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] },
+                        "2016": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] },
+                        "2017": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] },
+                        "2018": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] },
+                        "2019": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] },
+                        "2020": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] },
+                        "2021": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] },
+                        "2022": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] },
+                        "2023": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] },
+                        "2024": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] },
+                        "PP": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] },
+                        "SP": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] }
+                    },
+                    "英文版": {
+                        "2012": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] },
+                        "2013": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] },
+                        "2014": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] },
+                        "2015": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] },
+                        "2016": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] },
+                        "2017": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] },
+                        "2018": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] },
+                        "2019": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] },
+                        "2020": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] },
+                        "2021": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] },
+                        "2022": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] },
+                        "2023": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] },
+                        "PP": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] },
+                        "SP": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] }
+                    }
+                }
+            }
+        };
+
+        createApp({
+            data() {
+                return {
+                    db: rawData,
+                    breadcrumbs: [],
+                    currentMenu: rawData,
+                    // 新增：模态框状态
+                    pdfUrl: null,
+                    viewingFileName: ''
+                }
+            },
+            methods: {
+                enterDir(key) {
+                    this.breadcrumbs.push(key);
+                    this.currentMenu = this.currentMenu[key];
+                },
+                jumpTo(index) {
+                    this.breadcrumbs = this.breadcrumbs.slice(0, index + 1);
+                    let temp = this.db;
+                    this.breadcrumbs.forEach(key => { temp = temp[key]; });
+                    this.currentMenu = temp;
+                },
+                goHome() {
+                    this.breadcrumbs = [];
+                    this.currentMenu = this.db;
+                },
+                getFilePath(filename) {
+                    return "./" + this.breadcrumbs.join('/') + "/" + filename;
+                },
+                // 新增：美化展示的文件名（删除 (1) 等括号内容）
+                formatFileName(name) {
+                    return name.replace(/\s*\(\d+\)/g, '').replace(/\s*- 副本/g, '').toUpperCase();
+                },
+                // 新增：打开 PDF 预览
+                viewPdf(file) {
+                    this.viewingFileName = this.formatFileName(file);
+                    this.pdfUrl = this.getFilePath(file);
+                    document.body.style.overflow = 'hidden'; // 禁止背景滚动
+                },
+                // 新增：关闭 PDF 预览
+                closePdf() {
+                    this.pdfUrl = null;
+                    document.body.style.overflow = 'auto'; // 恢复背景滚动
+                }
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>
