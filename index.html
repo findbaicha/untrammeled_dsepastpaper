@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HKDSE Past Paper 資源庫 | Untrammeled</title>
+    <title>HKDSE Past Paper 資源庫</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -18,44 +18,20 @@
         /* 反馈模态框 */
         .feedback-modal { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(8px); }
         .slide-up { animation: slideUp 0.3s ease-out; }
-        
         @keyframes slideUp {
             from { transform: translateY(20px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
         }
         
+        /* 成功消息动画 */
         @keyframes slideInRight {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
         }
-        
-        /* 表格样式 */
-        .table-container {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        
-        .table-container::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        .table-container::-webkit-scrollbar-track {
-            background: #f1f5f9;
-            border-radius: 3px;
-        }
-        
-        .table-container::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 3px;
-        }
-        
-        .table-container::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
     </style>
 </head>
 <body class="bg-[#f8fafc] min-h-screen pb-20">
-    <div id="app" class="max-w-6xl mx-auto px-4 py-8">
+    <div id="app" class="max-w-5xl mx-auto px-4 py-8">
         <!-- 顶部栏 -->
         <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
             <div class="mb-4 md:mb-0">
@@ -64,10 +40,8 @@
             </div>
             <div class="flex flex-col md:flex-row md:items-center space-y-3 md:space-y-0 md:space-x-4">
                 <span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider inline-block w-fit">Public Archive</span>
-                
-                <!-- 反馈按钮 -->
                 <button @click="showFeedbackForm" 
-                        class="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-sm hover:shadow-md flex items-center">
+                        class="bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-sm hover:shadow-md flex items-center justify-center">
                     <i class="fas fa-comment-medical mr-2"></i>
                     報告缺失試卷
                 </button>
@@ -86,58 +60,56 @@
         </nav>
 
         <!-- 主内容区域 -->
-        <div>
-            <div v-if="Object.keys(currentMenu).length > (currentMenu._files ? 1 : 0)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                <div v-for="(value, key) in currentMenu" v-show="key !== '_files'" 
-                     @click="enterDir(key)"
-                     class="card-hover cursor-pointer bg-white p-6 rounded-2xl border border-slate-100 flex items-center justify-between transition-all group">
-                    <div class="flex items-center space-x-4">
-                        <div class="w-12 h-12 bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-blue-500 rounded-xl flex items-center justify-center transition-colors">
-                            <i class="fas fa-folder text-xl"></i>
-                        </div>
-                        <div>
-                            <span class="font-bold text-slate-700 text-lg block leading-tight">{{ key }}</span>
-                            <span class="text-slate-400 text-xs mt-1">Click to view items</span>
-                        </div>
+        <div v-if="Object.keys(currentMenu).length > (currentMenu._files ? 1 : 0)" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div v-for="(value, key) in currentMenu" v-show="key !== '_files'" 
+                 @click="enterDir(key)"
+                 class="card-hover cursor-pointer bg-white p-6 rounded-2xl border border-slate-100 flex items-center justify-between transition-all group">
+                <div class="flex items-center space-x-4">
+                    <div class="w-12 h-12 bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-blue-500 rounded-xl flex items-center justify-center transition-colors">
+                        <i class="fas fa-folder text-xl"></i>
                     </div>
-                    <i class="fas fa-arrow-right text-slate-200 group-hover:text-blue-300 transition-colors"></i>
-                </div>
-            </div>
-
-            <!-- 文件列表 -->
-            <div v-if="currentMenu._files" class="mt-8">
-                <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-                    <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
-                        <span class="font-bold text-slate-500 uppercase text-xs tracking-widest">Available PDF Documents</span>
-                        <span class="text-slate-400 text-xs">{{ currentMenu._files.length }} Files</span>
-                    </div>
-                    <div class="divide-y divide-slate-50">
-                        <div v-for="file in currentMenu._files" @click="viewPdf(file)"
-                           class="flex items-center justify-between p-5 hover:bg-blue-50/50 group transition-all cursor-pointer">
-                            <div class="flex items-center pr-4">
-                                <div class="w-10 h-10 flex items-center justify-center text-red-500 bg-red-50 rounded-lg mr-4 group-hover:scale-110 transition-transform">
-                                    <i class="fas fa-file-pdf text-lg"></i>
-                                </div>
-                                <div>
-                                    <span class="text-slate-700 group-hover:text-blue-700 font-semibold block transition-colors">
-                                        {{ formatFileName(file) }}
-                                    </span>
-                                    <span class="text-slate-400 text-xs">PDF Document</span>
-                                </div>
-                            </div>
-                            <div class="flex items-center text-blue-500 font-bold text-xs bg-white px-4 py-2 rounded-full border border-slate-100 shadow-sm group-hover:bg-blue-600 group-hover:text-white transition-all">
-                                VIEW <i class="fas fa-eye ml-2"></i>
-                            </div>
-                        </div>
+                    <div>
+                        <span class="font-bold text-slate-700 text-lg block leading-tight">{{ key }}</span>
+                        <span class="text-slate-400 text-xs mt-1">Click to view items</span>
                     </div>
                 </div>
+                <i class="fas fa-arrow-right text-slate-200 group-hover:text-blue-300 transition-colors"></i>
             </div>
+        </div>
 
-            <!-- 空文件夹提示 -->
-            <div v-if="Object.keys(currentMenu).length === 0" class="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
-                <i class="fas fa-inbox text-slate-200 text-5xl mb-4"></i>
-                <p class="text-slate-400">This folder is empty.</p>
+        <!-- 文件列表 -->
+        <div v-if="currentMenu._files" class="mt-8">
+            <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                    <span class="font-bold text-slate-500 uppercase text-xs tracking-widest">Available PDF Documents</span>
+                    <span class="text-slate-400 text-xs">{{ currentMenu._files.length }} Files</span>
+                </div>
+                <div class="divide-y divide-slate-50">
+                    <div v-for="file in currentMenu._files" @click="viewPdf(file)"
+                       class="flex items-center justify-between p-5 hover:bg-blue-50/50 group transition-all cursor-pointer">
+                        <div class="flex items-center pr-4">
+                            <div class="w-10 h-10 flex items-center justify-center text-red-500 bg-red-50 rounded-lg mr-4 group-hover:scale-110 transition-transform">
+                                <i class="fas fa-file-pdf text-lg"></i>
+                            </div>
+                            <div>
+                                <span class="text-slate-700 group-hover:text-blue-700 font-semibold block transition-colors">
+                                    {{ formatFileName(file) }}
+                                </span>
+                                <span class="text-slate-400 text-xs">PDF Document</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center text-blue-500 font-bold text-xs bg-white px-4 py-2 rounded-full border border-slate-100 shadow-sm group-hover:bg-blue-600 group-hover:text-white transition-all">
+                            VIEW <i class="fas fa-eye ml-2"></i>
+                        </div>
+                    </div>
+                </div>
             </div>
+        </div>
+
+        <!-- 空文件夹提示 -->
+        <div v-if="Object.keys(currentMenu).length === 0" class="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-200">
+            <i class="fas fa-inbox text-slate-200 text-5xl mb-4"></i>
+            <p class="text-slate-400">This folder is empty.</p>
         </div>
 
         <!-- PDF 预览模态框 -->
@@ -275,15 +247,15 @@
                     <div class="pt-4 border-t border-slate-100">
                         <div class="flex justify-between items-center">
                             <button @click="submitFeedback" 
-                                    :disabled="!canSubmitFeedback"
-                                    :class="canSubmitFeedback 
+                                    :disabled="!canSubmit"
+                                    :class="canSubmit 
                                             ? 'bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600' 
                                             : 'bg-slate-300 cursor-not-allowed'"
                                     class="text-white px-8 py-3 rounded-xl font-bold transition-all shadow-sm hover:shadow-md flex items-center">
                                 <i class="fas fa-paper-plane mr-2"></i>
                                 提交報告
                             </button>
-                            <button @click="resetFeedbackForm" class="text-slate-500 hover:text-slate-700 px-4 py-2 rounded-lg font-medium transition-colors">
+                            <button @click="resetForm" class="text-slate-500 hover:text-slate-700 px-4 py-2 rounded-lg font-medium transition-colors">
                                 重設表單
                             </button>
                         </div>
@@ -296,12 +268,12 @@
         </div>
 
         <!-- 提交成功提示 -->
-        <div v-if="showSuccessMessage" class="fixed bottom-4 right-4 z-[300]" style="animation: slideInRight 0.5s ease-out;">
+        <div v-if="showSuccessMessage" class="fixed bottom-4 right-4 z-[300] animate-slideInRight" style="animation: slideInRight 0.5s ease-out;">
             <div class="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-6 py-4 rounded-xl shadow-2xl flex items-center">
                 <i class="fas fa-check-circle text-xl mr-3"></i>
                 <div>
-                    <p class="font-bold">{{ successMessage.title }}</p>
-                    <p class="text-sm opacity-90">{{ successMessage.details }}</p>
+                    <p class="font-bold">報告已提交！</p>
+                    <p class="text-sm opacity-90">正在打開 GitHub 頁面...</p>
                 </div>
             </div>
         </div>
@@ -309,29 +281,9 @@
 
     <script>
         const { createApp } = Vue;
-        
-        // GitHub 配置
-        const GITHUB_CONFIG = {
-            repo: 'findbaicha/untrammeled_dsepastpaper',
-            feedbackLabels: '用户反馈,缺失试卷'
-        };
-        
-        // 文件数据
         const rawData = {
             "hkedb file": {
-                "_files": [
-                    "六国论.PDF",
-                    "出师表.PDF",
-                    "劝学.PDF",
-                    "始得西山宴游记.PDF",
-                    "岳阳楼记.PDF",
-                    "师说.PDF",
-                    "廉颇蔺相如列传.PDF",
-                    "论仁论孝论君子.PDF",
-                    "逍遥游.PDF",
-                    "鱼我所欲也.PDF", 
-                    "SET_TEXT_12.pdf"
-                ] 
+                "_files": ["六国论.pdf","出师表.pdf","劝学.pdf","始得西山宴游记.pdf","岳阳楼记.pdf","师说.pdf","廉颇蔺相如列传.pdf","论仁论孝论君子.pdf","逍遥游.pdf","鱼我所欲也.pdf", "SET_TEXT_12.pdf"] ,
             },
             "Chinese": {
                 "2012": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf", "p3.pdf", "p4.pdf", "p5.pdf", "per.pdf"] },
@@ -403,39 +355,21 @@
                         "SP": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf"] }
                     }
                 }
-            },
-            "ICT": {
-                "2012": { "_files": ["ans.pdf", "p1.pdf", "p2a.pdf"] },
-                "2013": { "_files": ["ans.pdf", "p1.pdf", "p2a.pdf"] },
-                "2014": { "_files": ["ans.pdf", "p1.pdf", "p2a.pdf"] },
-                "2015": { "_files": ["ans.pdf", "p1.pdf", "p2a.pdf"] },
-                "2016": { "_files": ["ans.pdf", "p1.pdf", "p2a.pdf"] },
-                "2017": { "_files": ["ans.pdf", "p1.pdf", "p2a.pdf"] },
-                "2018": { "_files": ["ans.pdf", "p1.pdf", "p2a.pdf"] },
-                "2019": { "_files": ["ans.pdf", "p1.pdf", "p2a.pdf"] },
-                "2020": { "_files": ["ans.pdf", "p1.pdf", "p2a.pdf"] },
-                "2021": { "_files": ["ans.pdf", "p1.pdf", "p2a.pdf"] },
-                "2022": { "_files": ["ans.pdf", "p1.pdf", "p2a.pdf"] },
-                "2023": { "_files": ["ans.pdf", "p1.pdf", "p2a.pdf"] },
-                "PP": { "_files": ["ans.pdf", "p1.pdf", "p2a.pdf"] },
-                "SP": { "_files": ["ans.pdf", "p1.pdf", "p2a.pdf"] }
-                    },
+            }
         };
-        
+
         createApp({
             data() {
                 return {
-                    // 文件浏览数据
                     db: rawData,
                     breadcrumbs: [],
                     currentMenu: rawData,
-                    
-                    // PDF 预览
+                    // PDF 预览状态
                     pdfUrl: null,
                     viewingFileName: '',
-                    
-                    // 反馈表单
+                    // 反馈表单状态
                     showFeedback: false,
+                    showSuccessMessage: false,
                     feedback: {
                         subject: '',
                         year: '',
@@ -444,73 +378,60 @@
                         description: '',
                         contact: ''
                     },
-                    
-                    // 成功消息
-                    showSuccessMessage: false,
-                    successMessage: {
-                        title: '',
-                        details: ''
+                    // 配置：GitHub仓库信息
+                    githubConfig: {
+                        repo: 'YOUR_USERNAME/YOUR_REPO', // 请修改为你的仓库
+                        labels: '用户反馈,缺失试卷'
                     }
                 }
             },
             computed: {
-                // 反馈表单验证
-                canSubmitFeedback() {
-                    return this.feedback.subject && 
-                           this.feedback.year && 
-                           this.feedback.missingPapers.length > 0;
+                canSubmit() {
+                    return this.feedback.subject && this.feedback.year && this.feedback.missingPapers.length > 0;
                 }
             },
             methods: {
-                // ============ 文件浏览方法 ============
+                // 原有文件浏览方法
                 enterDir(key) {
                     this.breadcrumbs.push(key);
                     this.currentMenu = this.currentMenu[key];
                 },
-                
                 jumpTo(index) {
                     this.breadcrumbs = this.breadcrumbs.slice(0, index + 1);
                     let temp = this.db;
                     this.breadcrumbs.forEach(key => { temp = temp[key]; });
                     this.currentMenu = temp;
                 },
-                
                 goHome() {
                     this.breadcrumbs = [];
                     this.currentMenu = this.db;
                 },
-                
                 getFilePath(filename) {
                     return "./" + this.breadcrumbs.join('/') + "/" + filename;
                 },
-                
                 formatFileName(name) {
                     return name.replace(/\s*\(\d+\)/g, '').replace(/\s*- 副本/g, '').toUpperCase();
                 },
-                
                 viewPdf(file) {
                     this.viewingFileName = this.formatFileName(file);
                     this.pdfUrl = this.getFilePath(file);
                     document.body.style.overflow = 'hidden';
                 },
-                
                 closePdf() {
                     this.pdfUrl = null;
                     document.body.style.overflow = 'auto';
                 },
                 
-                // ============ 反馈表单方法 ============
+                // 反馈表单相关方法
                 showFeedbackForm() {
                     this.showFeedback = true;
                     document.body.style.overflow = 'hidden';
                 },
-                
                 closeFeedbackForm() {
                     this.showFeedback = false;
                     document.body.style.overflow = 'auto';
                 },
-                
-                resetFeedbackForm() {
+                resetForm() {
                     this.feedback = {
                         subject: '',
                         year: '',
@@ -520,16 +441,11 @@
                         contact: ''
                     };
                 },
-                
                 async submitFeedback() {
-                    if (!this.canSubmitFeedback) return;
+                    if (!this.canSubmit) return;
                     
                     // 1. 显示成功消息
                     this.showSuccessMessage = true;
-                    this.successMessage = {
-                        title: '報告已提交！',
-                        details: '正在打開 GitHub 頁面...'
-                    };
                     
                     // 2. 组织反馈内容为Markdown格式
                     const issueBody = this.generateIssueBody();
@@ -545,11 +461,10 @@
                         setTimeout(() => {
                             this.showSuccessMessage = false;
                             this.closeFeedbackForm();
-                            this.resetFeedbackForm();
+                            this.resetForm();
                         }, 2000);
                     }, 1000);
                 },
-                
                 generateIssueBody() {
                     return `
 **📋 缺失試卷報告**
@@ -565,49 +480,30 @@
 
 **📅 提交信息**
 - 提交時間：${new Date().toLocaleString('zh-Hant')}
-- 提交來源：DSE Resource Hub (公開模式)
+- 提交來源：DSE Resource Hub
 
 ---
 *此報告通過 DSE 資源庫反饋系統提交*
                     `.trim();
                 },
-                
                 generateGitHubIssueUrl(issueBody) {
                     const issueTitle = `[缺失試卷] ${this.feedback.subject} ${this.feedback.year}`;
-                    const baseUrl = `https://github.com/${GITHUB_CONFIG.repo}/issues/new`;
+                    const baseUrl = `https://github.com/${this.githubConfig.repo}/issues/new`;
                     
                     const params = new URLSearchParams({
                         'title': issueTitle,
                         'body': issueBody,
-                        'labels': GITHUB_CONFIG.feedbackLabels
+                        'labels': this.githubConfig.labels
                     });
                     
                     return `${baseUrl}?${params.toString()}`;
-                },
-                
-                // ============ 工具方法 ============
-                showSuccess(title, details) {
-                    this.successMessage = { title, details };
-                    this.showSuccessMessage = true;
-                    
-                    setTimeout(() => {
-                        this.showSuccessMessage = false;
-                    }, 3000);
-                },
-                
-                showError(message) {
-                    this.successMessage = { title: '錯誤', details: message };
-                    this.showSuccessMessage = true;
-                    
-                    setTimeout(() => {
-                        this.showSuccessMessage = false;
-                    }, 3000);
                 }
             },
             mounted() {
+                // 确保GitHub仓库配置正确
                 console.log('DSE Resource Hub 已載入');
-                console.log('GitHub 倉庫：', GITHUB_CONFIG.repo);
-                console.log('當前模式：公開瀏覽（無需登錄）');
+                console.log('GitHub Issues 反饋系統已啟用');
+                console.log('請確保已開啟倉庫 Issues 功能: https://github.com/' + this.githubConfig.repo + '/settings');
             }
         }).mount('#app')
     </script>
