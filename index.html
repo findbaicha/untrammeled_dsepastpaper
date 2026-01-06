@@ -63,14 +63,17 @@
                  class="card-hover cursor-pointer bg-white p-6 rounded-2xl border border-slate-100 flex items-center justify-between transition-all group">
                 <div class="flex items-center space-x-4">
                     <div class="w-12 h-12 bg-slate-50 group-hover:bg-blue-50 text-slate-400 group-hover:text-blue-500 rounded-xl flex items-center justify-center transition-colors">
-                        <i class="fas fa-folder text-xl"></i>
+                        <i v-if="key === 'hkedb file'" class="fas fa-external-link-alt text-xl"></i>
+                        <i v-else class="fas fa-folder text-xl"></i>
                     </div>
                     <div>
                         <span class="font-bold text-slate-700 text-lg block leading-tight">{{ key }}</span>
-                        <span class="text-slate-400 text-xs mt-1">點擊查看項目</span>
+                        <span v-if="key === 'hkedb file'" class="text-blue-500 text-xs mt-1">點擊跳轉到外部資源</span>
+                        <span v-else class="text-slate-400 text-xs mt-1">點擊查看項目</span>
                     </div>
                 </div>
-                <i class="fas fa-arrow-right text-slate-200 group-hover:text-blue-300 transition-colors"></i>
+                <i v-if="key === 'hkedb file'" class="fas fa-arrow-up-right-from-square text-blue-400 group-hover:text-blue-600 transition-colors"></i>
+                <i v-else class="fas fa-arrow-right text-slate-200 group-hover:text-blue-300 transition-colors"></i>
             </div>
         </div>
 
@@ -274,9 +277,7 @@
     <script>
         const { createApp } = Vue;
         const rawData = {
-            "hkedb file": {
-                "_files": ["六国论.pdf","出师表.pdf","劝学.pdf","始得西山宴游记.pdf","岳阳楼记.pdf","师说.pdf","廉颇蔺相如列传.pdf","论仁论孝论君子.pdf","逍遥游.pdf","鱼我所欲也.pdf", "SET_TEXT_12.pdf"] ,
-            },
+            "hkedb file": {}, // 這是一個特殊的項目，點擊時會跳轉到外部鏈接
             "Chinese": {
                 "2012": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf", "p3.pdf", "p4.pdf", "p5.pdf", "per.pdf"] },
                 "2013": { "_files": ["ans.pdf", "p1.pdf", "p2.pdf", "p4.pdf", "p5.pdf"] },
@@ -380,11 +381,19 @@
                 }
             },
             methods: {
-                // 原有文件瀏覽方法
+                // 修改的enterDir方法
                 enterDir(key) {
+                    // 特殊處理：如果點擊的是 "hkedb file"，則跳轉到外部鏈接
+                    if (key === 'hkedb file') {
+                        window.open('https://findbaicha.github.io/chinese_edb_file', '_blank', 'noopener,noreferrer');
+                        return;
+                    }
+                    
+                    // 正常的文件夾導航邏輯
                     this.breadcrumbs.push(key);
                     this.currentMenu = this.currentMenu[key];
                 },
+                
                 jumpTo(index) {
                     this.breadcrumbs = this.breadcrumbs.slice(0, index + 1);
                     let temp = this.db;
@@ -402,13 +411,13 @@
                     return name.replace(/\s*\(\d+\)/g, '').replace(/\s*- 副本/g, '').toUpperCase();
                 },
                 
-                // 新增：打開PDF（在新標籤頁）
+                // 打開PDF（在新標籤頁）
                 openPdf(file) {
                     const filePath = this.getFilePath(file);
                     window.open(filePath, '_blank', 'noopener,noreferrer');
                 },
                 
-                // 新增：下載PDF
+                // 下載PDF
                 downloadPdf(file) {
                     const filePath = this.getFilePath(file);
                     const link = document.createElement('a');
